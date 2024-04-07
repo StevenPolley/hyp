@@ -15,13 +15,11 @@ Option 1 is the default option and is analogous to having your services internet
 
 ### Brute Force Simple Overview
 
-To put it in simple terms, hyp requires an adversary to guess a number between 1 and 18,446,744,073,709,551,615 within 90 seconds.  Each guess attempt requires four ordered UDP packets to be sent.  The requirement for correct order on arrival, multiple network paths, and network latency means the packets have to be spaced out and transmitted one at a time with time spent waiting before the next packet is sent.  An odd but perhaps useful implication of this is that the further away you are (higher latency), the less reliable guess attempts you can make before the number changes.  With 20ms of latency, you can perform a maximum of 4,500 reliable guesses.  With 100ms of latency, you can only perform a maximum of 900 reliable guesses.
+To put it in simple terms, hyp requires an adversary to guess a number between 1 and 18,446,744,073,709,551,615 within 90 seconds.  Each guess attempt requires four ordered UDP datagrams to be sent.  The requirement for correct order on arrival, multiple network paths, and network latency means the datagrams have to be spaced out and transmitted one at a time with time spent waiting before the next datagram is sent.  An odd but perhaps useful implication of this is that the further away you are (higher latency), the less reliable guess attempts you can make before the number changes.  With 20ms of latency, you can perform a maximum of 4,500 reliable guesses.  With 100ms of latency, you can only perform a maximum of 900 reliable guesses.
 
 ### Protection Against Replay Attacks
 
 Most port-knocking implementations are susceptible to replay attacks, a network operator could intercept your authentic knock sequence and then replay the sequence.  hyp works around this by using 64-bit time-based one-time tokens.  The 64 bits of the token are then divided into 4x16-bit unsigned integers representing a port number.  
-
-To put it simply, an adversary has to guess a number between 1 and 18446744073709551615 within 30 seconds... and each guess requires four ordered UDP packets to be sent.  And unless your adversary has knowledge that you use hyp, it's not likely something they would be even attempting to guess.  
 
 hyp supports a clock skew of up to 30 seconds between client and server.  
 
