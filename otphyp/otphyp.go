@@ -16,17 +16,18 @@ import (
 // A loose implementation of hotp meant for our specific purposes of generating four random port numbers
 // Accepts a base32 encoded shared secret and a time
 func GeneratePorts(sharedSecret string, t time.Time) (ports [4]uint16, err error) {
-	// 30 second key rotation
-	movingFactor := uint64(math.Floor(float64(t.Unix()) / float64(30)))
 
 	sharedSecretBytes, err := base32.StdEncoding.DecodeString(sharedSecret)
 	if err != nil {
 		return [4]uint16{0, 0, 0, 0}, fmt.Errorf("failed to base32 decode shared secret string to bytes: %v", err)
 	}
 
+	// 30 second key rotation
+	movingFactor := uint64(math.Floor(float64(t.Unix()) / float64(30)))
 	buf := make([]byte, 8)
 	binary.BigEndian.PutUint64(buf, movingFactor)
 
+	// calculate hmac and offset
 	mac := hmac.New(sha1.New, sharedSecretBytes)
 	mac.Write(buf)
 	sum := mac.Sum(nil)
@@ -34,6 +35,7 @@ func GeneratePorts(sharedSecret string, t time.Time) (ports [4]uint16, err error
 
 	// deviation from RFC4226's dynamic truncate and modulo reduction algorithm
 	// we don't need base10 human friendliness and instead just care about 64 bits / 4
+	// which represents 4 UDP ports
 	ports = [4]uint16{
 		uint16((int(sum[offset]) & 0xff) << 8),
 		uint16((int(sum[offset+1] & 0xff)) << 8),
@@ -44,6 +46,11 @@ func GeneratePorts(sharedSecret string, t time.Time) (ports [4]uint16, err error
 	return ports, err
 }
 
+// GenerateSecret creates a new 20 byte base32 encoded secret for use with GeneratePorts
+// The recommended flow is:
+// 1. Generate the secret
+// 2. Save the secret to a file
+// 3. Distribute the secret to a client
 func GenerateSecret() (sharedSecret string, err error) {
 	sharedSecretBytes := make([]byte, 20)
 	r := rand.Reader
