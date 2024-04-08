@@ -19,30 +19,34 @@ type Client struct {
 
 // KnockSequence is used keep track of an ordered knock sequence and whether it's been marked for use (to prevent replay attacks)
 type KnockSequence struct {
-	Used         bool
-	PortSequence [4]uint16
+	Used         bool      // If true, that means this knock sequence has already been used once.  It may still be within the valid time window, but it can't be used again
+	PortSequence [4]uint16 // Each knock sequence is four ports long
 }
 
 var (
 	clients        map[string]*Client // Contains a map of clients
-	knockSequences []KnockSequence
-	sharedSecret   string // base32 encoded shared secret used for totp
+	knockSequences []KnockSequence    // We have 3 valid knock sequences at any time to account for clock skew
+	sharedSecret   string             // base32 encoded shared secret used for totp
 )
 
 // packetServer is the main function when operating in server mode
-// it sets up the pcap on the capture deivce and starts a goroutine
+// it sets up the pcap on the capture device and starts a goroutine
 // to rotate the knock sequence
 func packetServer(captureDevice string) {
-	clients = make(map[string]*Client, 0) // key is flow, value is the current progress through the sequence. i.e. value of 1 means that the first port in the sequence was successful
+	clients = make(map[string]*Client, 0) // key is source IP address, value is the current progress through the sequence. i.e. value of 1 means that the first port in the sequence was successful
 	knockSequences = []KnockSequence{}    // Slice of accepted port sequences, there have to be several to account for clock skew between client and server
 
+	// Open pcap handle on device
 	handle, err := pcap.OpenLive(captureDevice, 1600, true, pcap.BlockForever)
 	if err != nil {
 		log.Fatalf("failed to open adapter")
 	}
 	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
 
+	// Setup a goroutine to periodically rotate the authentic knock sequence
 	go rotateSequence(handle)
+
+	// Read from the pcap handle until we exit
 	for packet := range packetSource.Packets() {
 		handlePacket(packet) // Do something with a packet here.
 	}
@@ -52,14 +56,15 @@ func packetServer(captureDevice string) {
 func handlePacket(packet gopacket.Packet) {
 	port := binary.BigEndian.Uint16(packet.TransportLayer().TransportFlow().Dst().Raw())
 	srcip := packet.NetworkLayer().NetworkFlow().Src().String()
+
 	client, ok := clients[srcip]
-	if !ok { // create the client, identify which authentic knock sequence is matched
-		for i, knockSequence := range knockSequences {
+	if !ok { // client doesn't exist yet
+		for i, knockSequence := range knockSequences { // identify which of the 3 authentic knock sequences is matched
 			if knockSequence.Used { // skip over sequences that are already used to prevent replay attack
 				continue
 			}
-
 			if port == knockSequence.PortSequence[0] {
+				// Create the client and mark the knock sequence as used
 				clients[srcip] = &Client{Progress: 1, Sequence: knockSequence.PortSequence}
 				knockSequences[i].Used = true
 			}
@@ -69,6 +74,7 @@ func handlePacket(packet gopacket.Packet) {
 
 	// if it's wrong, reset progress
 	// TBD: vulnerable to sweep attack - this won't be triggered if a wrong packet doesn't match BPF filter
+	// TBD: make the sweep attack fix on by default, but configurable to be off to allow for limited BPF filter for extremely low overhead as compromise.
 	if port != client.Sequence[client.Progress] {
 		delete(clients, srcip)
 		fmt.Printf("port '%d' is in sequence, but came at unexpected order - resetting progress", port)
@@ -79,7 +85,7 @@ func handlePacket(packet gopacket.Packet) {
 	client.Progress++
 	if client.Progress >= len(client.Sequence) {
 		delete(clients, srcip)
-		handleSuccess(srcip)
+		handleSuccess(srcip) // The magic function, the knock is completed
 		return
 	}
 }

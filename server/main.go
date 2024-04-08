@@ -41,28 +41,35 @@ func main() {
 			usage()
 		}
 		packetServer(os.Args[2])
+	default:
+		usage()
 	}
+
 }
 
 func usage() {
-	fmt.Print(`hyp <command>
+	fmt.Print(`hypd <command>
+	
 	Commands:
-	generatesecret - creates a pre shared key file named hyp.secret which can be distributed to a trusted client
-	server <device> - TBD
+		generatesecret - creates a pre shared key file named hyp.secret which can be distributed to a trusted client
+		server <device> - runs the hypd server watching for an authentic knock sequence
 
 	Example Usage:
 
-	# Linux
-	hyp server "/dev/eth0"
+		# Generate a secret, to be shared with a trusted client
+		hypd generatesecret
 
-	# Windows - get-netadapter | where {$_.Name -eq “Ethernet”} | Select-Object -Property DeviceName
-	hyp server "\\Device\\NPF_{A066F7DE-CC2D-4E4B-97C4-BF0EC4C03649}"
+		# Linux - ip link
+		hypd server eth0
+
+		# Windows - get-netadapter | where {$_.Name -eq “Ethernet”} | Select-Object -Property DeviceName
+		hypd server "\\Device\\NPF_{A066F7DE-CC2D-4E4B-97C4-BF0EC4C03649}"
 
 `)
 	os.Exit(1)
 }
 
-// TBD: Implement
+// TBD: Implement - this is a temporary routine to demonstrate an application
 func handleSuccess(srcip string) {
 	fmt.Println("Success for ", srcip)
 

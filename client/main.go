@@ -45,7 +45,16 @@ func main() {
 }
 
 func usage() {
-	fmt.Println(os.Args[0], "usage")
-	fmt.Println("Supply an ordered list of ports to knock")
-	fmt.Println(os.Args[0], "server")
+	fmt.Print(`hyp <server>
+
+	Example Usage:
+
+		# Transmit an authentic knock sequence to a server
+		hyp 10.69.4.20
+
+		# You can use a DNS name too
+		hyp hyp.stevenpolley.net
+
+`)
+	os.Exit(1)
 }
