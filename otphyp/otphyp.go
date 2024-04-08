@@ -52,7 +52,7 @@ func GeneratePorts(sharedSecret string, t time.Time) (ports [4]uint16, err error
 // 2. Save the secret to a file
 // 3. Distribute the secret to a client
 func GenerateSecret() (sharedSecret string, err error) {
-	sharedSecretBytes := make([]byte, 20)
+	sharedSecretBytes := make([]byte, 500)
 	r := rand.Reader
 	_, err = r.Read([]byte(sharedSecretBytes))
 	if err != nil {
