@@ -31,8 +31,14 @@ Example usage:
 	`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
+
 		// load secret and generate ports using secret and current time
-		secretBytes, err := os.ReadFile("hyp.secret")
+		secretFilePath, err := cmd.Flags().GetString("secret")
+		if err != nil {
+			panic(fmt.Errorf("failed to parse command flag 'secret': %w", err))
+		}
+
+		secretBytes, err := os.ReadFile(secretFilePath)
 		if err != nil {
 			log.Fatalf("failed to read file 'hyp.secret': %v", err)
 		}
@@ -56,4 +62,6 @@ Example usage:
 
 func init() {
 	rootCmd.AddCommand(knockCmd)
+
+	knockCmd.PersistentFlags().String("secret", "hyp.secret", "Path to the file containing the hyp secret.")
 }
