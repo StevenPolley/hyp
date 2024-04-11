@@ -36,7 +36,7 @@ var (
 	sharedSecret   string             // base32 encoded shared secret used for totp
 )
 
-// packetServer is the main function when operating in server mode
+// PacketServer is the main function when operating in server mode
 // it sets up the pcap on the capture device and starts a goroutine
 // to rotate the knock sequence
 func PacketServer(captureDevice string) error {
@@ -50,7 +50,7 @@ func PacketServer(captureDevice string) error {
 	knockSequences = []KnockSequence{}
 
 	// Open pcap handle on device
-	handle, err := pcap.OpenLive(captureDevice, 1600, true, pcap.BlockForever)
+	handle, err := pcap.OpenLive(captureDevice, 126, true, pcap.BlockForever)
 	if err != nil {
 		return fmt.Errorf("failed to open pcap on capture device: %w", err)
 	}
