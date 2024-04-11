@@ -1,9 +1,15 @@
-package main
+/*
+Copyright © 2024 Steven Polley <himself@stevenpolley.net>
+*/
+
+package server
 
 import (
 	"encoding/binary"
 	"fmt"
 	"log"
+	"os"
+	"os/exec"
 	"time"
 
 	"deadbeef.codes/steven/hyp/otphyp"
@@ -13,8 +19,9 @@ import (
 
 // Client is used to keep track of a client attempting to perform an authentic knock sequence
 type Client struct {
-	Progress int       // index of current progress in sequence.   Value of 1 means first port has been matched
-	Sequence [4]uint16 // stores the knock sequence the current client is attempting.  It's set and tracked here to prevent race conditions during a knock sequence being received and key rotations
+	Progress    int       // index of current progress in sequence.   Value of 1 means first port has been matched
+	Sequence    [4]uint16 // stores the knock sequence the current client is attempting.  It's set and tracked here to prevent race conditions during a knock sequence being received and key rotations
+	LastUpdated time.Time // The last time the client sent a correct packet in the sequence
 }
 
 // KnockSequence is used keep track of an ordered knock sequence and whether it's been marked for use (to prevent replay attacks)
@@ -32,14 +39,20 @@ var (
 // packetServer is the main function when operating in server mode
 // it sets up the pcap on the capture device and starts a goroutine
 // to rotate the knock sequence
-func packetServer(captureDevice string) {
-	clients = make(map[string]*Client, 0) // key is source IP address, value is the current progress through the sequence. i.e. value of 1 means that the first port in the sequence was successful
-	knockSequences = []KnockSequence{}    // Slice of accepted port sequences, there have to be several to account for clock skew between client and server
+func PacketServer(captureDevice string) error {
+	secretBytes, err := os.ReadFile("hyp.secret")
+	if err != nil {
+		log.Fatalf("failed to read file 'hyp.secret': %v", err)
+	}
+	sharedSecret = string(secretBytes)
+
+	clients = make(map[string]*Client, 0)
+	knockSequences = []KnockSequence{}
 
 	// Open pcap handle on device
 	handle, err := pcap.OpenLive(captureDevice, 1600, true, pcap.BlockForever)
 	if err != nil {
-		log.Fatalf("failed to open adapter")
+		return fmt.Errorf("failed to open pcap on capture device: %w", err)
 	}
 	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
 
@@ -50,6 +63,7 @@ func packetServer(captureDevice string) {
 	for packet := range packetSource.Packets() {
 		handlePacket(packet) // Do something with a packet here.
 	}
+	return nil
 }
 
 // packets that match the BPF filter get passed to handlePacket
@@ -138,4 +152,15 @@ func setPacketFilter(handle *pcap.Handle) error {
 		return fmt.Errorf("failed to set BPF filter '%s': %v", filter, err)
 	}
 	return nil
+}
+
+// TBD: Implement - this is a temporary routine to demonstrate an application
+func handleSuccess(srcip string) {
+	fmt.Println("Success for ", srcip)
+
+	cmd := exec.Command("iptables", "-A", "INPUT", "-p", "tcp", "-s", srcip, "--dport", "22", "-j", "ACCEPT")
+	err := cmd.Run()
+	if err != nil {
+		log.Printf("failed to execute iptables command for '%s': %v", srcip, err)
+	}
 }
