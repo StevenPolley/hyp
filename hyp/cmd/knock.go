@@ -46,7 +46,7 @@ Example usage:
 		// Transmit
 		fmt.Println("Transmitting knock sequence:", ports)
 		for _, port := range ports {
-			conn, _ := net.Dial("udp", fmt.Sprintf("%s:%d", os.Args[1], port))
+			conn, _ := net.Dial("udp", fmt.Sprintf("%s:%d", args[0], port))
 			conn.Write([]byte{0})
 			conn.Close()
 			time.Sleep(time.Millisecond * 200) // TBD: Make this configurable with flag (maxJitter)
