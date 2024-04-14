@@ -27,7 +27,6 @@ steps:
     GOARCH: amd64
     CGO_ENABLED: 0
   commands:
-  - mkdir /dist
   - cd hyp
   - go build .
   - mv -f hyp /dist
