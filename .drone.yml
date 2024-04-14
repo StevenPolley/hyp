@@ -1,0 +1,44 @@
+kind: pipeline
+name: default
+
+workspace:
+  base: /go
+  path: src/deadbeef.codes/steven/hyp
+
+steps:
+
+- name: create build environment
+  image: plugins/docker
+  settings:
+    repo: registry.deadbeef.codes/hyp-build
+  when:
+    target:
+      include:
+      - environment
+
+- name: build hyp linux-amd64
+  image: registry.deadbeef.codes/hyp-build:latest
+  pull: always
+  environment:
+    GOOS: linux
+    GOARCH: amd64
+    CGO_ENABLED: 0
+  commands:
+  - mkdir /dist
+  - cd hyp
+  - go build .
+  - mv hyp /dist
+  - cd ../hypd/server
+  - go generate
+  - cd ..
+  - go build .
+  - mv hypd /dist
+
+- name: release
+  image: plugins/gitea-release
+  settings:
+    api_key: 
+      from_secret: drone_token
+    base_url: https://deadbeef.codes
+    files: dist/*
+
