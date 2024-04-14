@@ -9,7 +9,9 @@ RUN apt update -y && \
     apt upgrade -y && \
     apt install -y wget git clang linux-headers-amd64 libbpf-dev
 
-# Install golang
+# Install golang - Latest at: https://go.dev/dl/
 RUN wget https://go.dev/dl/go1.22.2.linux-amd64.tar.gz && \
     rm -rf /usr/local/go && tar -C /usr/local -xzf go1.22.2.linux-amd64.tar.gz && \
-    rm -rf *.tar.gz
+    rm -rf *.tar.gz && \
+    echo "export PATH=$PATH:/usr/local/go/bin" >> /root/.profile && source /root/.profile && \
+    
