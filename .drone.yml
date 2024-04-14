@@ -19,6 +19,9 @@ steps:
 - name: build hyp linux-amd64
   image: registry.deadbeef.codes/hyp-build:latest
   pull: always
+  volumes:
+  - name: publicrelease
+    path: /dist
   environment:
     GOOS: linux
     GOARCH: amd64
@@ -27,15 +30,19 @@ steps:
   - mkdir /dist
   - cd hyp
   - go build .
-  - mv hyp /dist
+  - mv -f hyp /dist
   - cd ../hypd/server
   - go generate
   - cd ..
   - go build .
-  - mv hypd /dist
+  - mv -f hypd /dist
 
 - name: release
   image: plugins/gitea-release
+  pull: always
+  volumes:
+  - name: publicrelease
+    path: /dist
   settings:
     api_key: 
       from_secret: drone_token
@@ -45,4 +52,9 @@ steps:
     target:
       include:
       - release
+
+volumes:
+- name: publicrelease
+  host:
+    path: /data/public/build
 
