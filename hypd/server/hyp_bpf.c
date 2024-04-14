@@ -37,6 +37,11 @@ int xdp_prog_func(struct xdp_md *ctx) {
 	void *data = (void *)(long)ctx->data;
 	void *data_end = (void *)(long)ctx->data_end;
 
+	// A knock should not contain any data
+	if (data_end - data > 60) { 
+		goto done;
+	}
+
 	// parse ethernet header
 	struct ethhdr *eth = data;
 
@@ -50,15 +55,17 @@ int xdp_prog_func(struct xdp_md *ctx) {
 				if ((void *)udp + sizeof(*udp) <= data_end)
 				{
 					// pack into knock structure and send to userspace
-					struct knock_data knock;
-					knock.srcip = bpf_ntohl(ip->saddr);
-					knock.dstport = bpf_htons(udp->dest);
-					knock.pad = 0;
+					struct knock_data knock = {
+						.srcip = bpf_ntohl(ip->saddr),
+						.dstport = bpf_htons(udp->dest),
+						.pad = 0
+					};				
 					bpf_ringbuf_output(&rb, &knock, sizeof(knock), BPF_RB_FORCE_WAKEUP);
 				}
 			}
 		}
 	}
-
+done:
+	// We send everything to XDP_PASS
 	return XDP_PASS;
 }
