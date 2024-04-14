@@ -2,3 +2,4 @@ hyp.secret
 *.exe
 hypd/hypd
 hyp/hyp
+hypd/server/hyp_bpf_bpfe*
