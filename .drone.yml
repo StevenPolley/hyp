@@ -42,7 +42,7 @@ steps:
     base_url: https://deadbeef.codes
     files: dist/*
     when:
-    target:
-      include:
-      - release
+      target:
+        include:
+        - release
 
