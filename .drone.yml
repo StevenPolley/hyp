@@ -86,11 +86,11 @@ steps:
     api_key: 
       from_secret: drone_token
     base_url: https://deadbeef.codes
-    files: dist/*
+    files: /dist/*
   when:
     event:
     - tag
-    
+
 volumes:
 - name: publicrelease
   host:
