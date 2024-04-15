@@ -1,5 +1,7 @@
 # hyp | Hide Your Ports
 
+[![Build Status](https://drone.deadbeef.codes/api/badges/steven/hyp/status.svg)](https://drone.deadbeef.codes/steven/hyp)
+
 hyp is a [port knocking](https://www.youtube.com/watch?v=a7VJZEJVhD0) implementation written in Go, using spread-spectrum UDP as an authentication mechanism.  It enables trusted devices to access services over the internet, wherever they are, and without the service being publicly accessible.  The benefit is that the ports are not open publicly on the internet, they won't show in a port scan and are therefore less likely to be attacked by a threat actor. 
 
 hyp provides security through obscurity.  Security through obscurity tends to have a negative connotation, at least in the IT world.  I don't agree with this, but it's prescribed as being bad.  My belief is security through obscurity is a "further step" one can take to eliminate a certain class of threats.  It by no means should be the only mechanism of protection, but instead should be incorporated only as part of a layered defense.  
