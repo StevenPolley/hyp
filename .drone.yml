@@ -30,13 +30,7 @@ steps:
   commands:
   - . /root/.profile
   - cd hyp
-  - go build .
-  - mv -f hyp /dist
-  - cd ../hypd/server
-  - go generate
-  - cd ..
-  - go build .
-  - mv -f hypd /dist
+  - go build -o /dist/hyp-linux-amd64 .
 
 
 - name: build hypd (server) linux-amd64
@@ -54,8 +48,7 @@ steps:
   - cd hypd/server
   - go generate
   - cd ..
-  - go build .
-  - mv -f hypd /dist
+  - go build -o /dist/hypd-linux-amd64 .
 
 
 - name: build hyp (client) windows-amd64
@@ -71,9 +64,7 @@ steps:
   commands:
   - . /root/.profile
   - cd hyp
-  - go build .
-  - mv -f hyp.exe /dist
- 
+  - go build -o /dist/hyp-windows-amd64.exe .
   
 
 - name: release
@@ -86,14 +77,13 @@ steps:
     api_key: 
       from_secret: drone_token
     base_url: https://deadbeef.codes
-    files: dist/*
+    files: /dist/*
   when:
-    target:
-      include:
-      - release
+    event:
+    - tag
 
 volumes:
 - name: publicrelease
   host:
-    path: /data/public/build
+    path: /data/public/build/hyp
 
