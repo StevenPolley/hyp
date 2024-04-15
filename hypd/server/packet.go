@@ -25,9 +25,8 @@ import (
 
 // Client is used to keep track of a client attempting to perform an authentic knock sequence
 type Client struct {
-	Progress    int       // index of current progress in sequence.   Value of 1 means first port has been matched
-	Sequence    [4]uint16 // stores the knock sequence the current client is attempting.  It's set and tracked here to prevent race conditions during a knock sequence being received and key rotations
-	LastUpdated time.Time // The last time the client sent a correct packet in the sequence
+	Progress int       // index of current progress in sequence.   Value of 1 means first port has been matched
+	Sequence [4]uint16 // stores the knock sequence the current client is attempting.  It's set and tracked here to prevent race conditions during a knock sequence being received and key rotations
 }
 
 // KnockSequence is used keep track of an ordered knock sequence and whether it's been marked for use (to prevent replay attacks)
@@ -35,6 +34,10 @@ type KnockSequence struct {
 	Used         bool      // If true, that means this knock sequence has already been used once.  It may still be within the valid time window, but it can't be used again
 	PortSequence [4]uint16 // Each knock sequence is four ports long
 }
+
+const (
+	KnockSequenceTimeout = 3 // TBD: Make this a configurable value
+)
 
 var (
 	clients        map[uint32]*Client // Contains a map of clients, key is IPv4 address
@@ -137,6 +140,7 @@ func handleKnock(knockEvent hyp_bpfKnockData) {
 				// Create the client and mark the knock sequence as used
 				clients[knockEvent.Srcip] = &Client{Progress: 1, Sequence: knockSequence.PortSequence}
 				knockSequences[i].Used = true
+				go timeoutKnockSequence(knockEvent.Srcip)
 			}
 		}
 		return
@@ -160,10 +164,21 @@ func handleKnock(knockEvent hyp_bpfKnockData) {
 	}
 }
 
+// Remove the client after the timeout value has elapsed.  This prevents a client from
+// being indefinitely stuck part way through an old knock sequence.  It's also helpful
+// in preventing sweep attacks as the authentic knock sequence must be correctly entered
+// within the timeout value from start to finish.
+func timeoutKnockSequence(srcip uint32) {
+	time.Sleep(time.Second * KnockSequenceTimeout)
+	_, ok := clients[srcip]
+	if ok {
+		delete(clients, srcip)
+	}
+}
+
 // Used to rotate the authentic port knock sequence
 func rotateSequence() {
 	for {
-
 		// Generate new knock sequences with time skew support
 		t := time.Now().Add(time.Second * -30)
 		for i := len(knockSequences); i < 3; i++ {
