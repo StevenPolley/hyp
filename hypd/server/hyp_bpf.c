@@ -7,11 +7,7 @@ Copyright © 2024 Steven Polley <himself@stevenpolley.net>
 #include "bpf_endian.h"
 #include <bpf/bpf_helpers.h>
 
-
 char __license[] SEC("license") = "BSD";
-
-#define ETH_P_IP 0x0800
-#define IP_FRAGMENTED 65343
 
 // representation of knock data that gets sent to userspace
 struct knock_data {
@@ -44,7 +40,6 @@ int xdp_prog_func(struct xdp_md *ctx) {
 
 	// parse ethernet header
 	struct ethhdr *eth = data;
-
 	if ((void *)eth + sizeof(*eth) <= data_end) {
 		// parse IP header
 		struct iphdr *ip = data + sizeof(*eth);
