@@ -19,7 +19,7 @@ server and to clients.
 
 Example:
 
-hypd generatesecret > hyp.secret`,
+hypd generate secret > hyp.secret`,
 	Run: func(cmd *cobra.Command, args []string) {
 		sharedSecret, err := otphyp.GenerateSecret()
 		if err != nil {
