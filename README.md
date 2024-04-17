@@ -25,14 +25,13 @@ Most port-knocking implementations are susceptible to replay attacks, a network 
 
 hyp supports a clock skew of up to 30 seconds between client and server.  
 
-### TBD: Protection Against Sweeping Attacks
+### Protection Against Sweeping Attacks
 
-~~hyp protects against sweeping attacks where an adversary modulates over the entire port range multiple times by ensuring the authentic knock sequence is strict and ordered correctly.  If the first port is guessed, but the next pack arrives and is the incorrect second port in the sequence, the progress gets reset.~~
+hyp protects against sweeping attacks where an adversary modulates over the entire port range multiple times by ensuring the authentic knock sequence is strict and ordered correctly.  If the first port is guessed, but the next pack arrives and is the incorrect second port in the sequence, the progress gets reset.  In addition to this, the correct authentic knock sequence must be entered within 5 seconds of the start of the sequence.  
 
 ### Known Weaknesses
 
 * Lossy networks can result in the knock sequence failing
-* Networks with latency > 500ms can result in the knock sequence failing if packets arrive out of order
 
 ### References
 
