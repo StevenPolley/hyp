@@ -38,6 +38,14 @@ Example usage:
 			panic(fmt.Errorf("failed to parse command flag 'secret': %w", err))
 		}
 
+		maxJitter, err := cmd.Flags().GetInt("maxjitter")
+		if err != nil {
+			panic(fmt.Errorf("failed to parse command flag 'maxjitter': %w", err))
+		}
+		if maxJitter < 1 || maxJitter > 1500 {
+			panic(fmt.Errorf("maxjitter must be value between 1 and 1500"))
+		}
+
 		secretBytes, err := os.ReadFile(secretFilePath)
 		if err != nil {
 			log.Fatalf("failed to read file 'hyp.secret': %v", err)
@@ -50,12 +58,12 @@ Example usage:
 		}
 
 		// Transmit
-		fmt.Println("Transmitting knock sequence:", ports)
 		for _, port := range ports {
+			fmt.Printf("knock | %s:%d\n", args[0], port)
 			conn, _ := net.Dial("udp", fmt.Sprintf("%s:%d", args[0], port))
 			conn.Write([]byte{0})
 			conn.Close()
-			time.Sleep(time.Millisecond * 200) // TBD: Make this configurable with flag (maxJitter)
+			time.Sleep(time.Millisecond * time.Duration(maxJitter)) // TBD: Make this configurable with flag (maxJitter)
 		}
 	},
 }
@@ -64,4 +72,5 @@ func init() {
 	rootCmd.AddCommand(knockCmd)
 
 	knockCmd.PersistentFlags().String("secret", "hyp.secret", "Path to the file containing the hyp secret.")
+	knockCmd.PersistentFlags().Int("maxjitter", 200, "Specifies the time in milliseconds between knock sequence transmissions.")
 }
