@@ -7,11 +7,11 @@ import (
 )
 
 type HypdConfiguration struct {
-	NetworkInterface      string `json:"networkInterface"`
+	NetworkInterface      string `json:"networkInterface"`      // The network interface that the eBPF program attaches to
 	PreSharedKeyDirectory string `json:"preSharedKeyDirectory"` // hypd will load all *.secret files from this directory
-	SuccessAction         string `json:"successAction"`         // The action to take
-	TimeoutSeconds        int    `json:"timeoutSeconds"`        // If > 0, once a knock sequence has been successful this value will count down and when it reaches 0, it will perform the TimeoutAction on the client.
-	TimeoutAction         string `json:"timeoutAction"`         // The action to take after TimeoutSeconds has elapsed.  only applicable if TimeoutSeconds is > 0
+	SuccessAction         string `json:"successAction"`         // The action to take for a successful knock, each argument is a separate string
+	TimeoutSeconds        int    `json:"timeoutSeconds"`        // If > 0, once a knock sequence has been successful this value will count down and when it reaches 0, it will perform the TimeoutAction on the client
+	TimeoutAction         string `json:"timeoutAction"`         // The action to take after TimeoutSeconds has elapsed.  only applicable if TimeoutSeconds is > 0, each argument is a separate string
 
 }
 

@@ -44,15 +44,17 @@ var (
 	clients        map[uint32]*Client // Contains a map of clients, key is IPv4 address
 	knockSequences []KnockSequence    // We have 3 valid knock sequences at any time to account for clock skew
 	sharedSecret   string             // base32 encoded shared secret used for totp
+	serverConfig   *configuration.HypdConfiguration
 )
 
 // PacketServer is the main function when operating in server mode
 // it sets up the pcap on the capture device and starts a goroutine
 // to rotate the knock sequence
 func PacketServer(config *configuration.HypdConfiguration) error {
-	iface, err := net.InterfaceByName(config.NetworkInterface)
+	serverConfig = config
+	iface, err := net.InterfaceByName(serverConfig.NetworkInterface)
 	if err != nil {
-		log.Fatalf("lookup network iface %q: %v", config.NetworkInterface, err)
+		log.Fatalf("lookup network iface %q: %v", serverConfig.NetworkInterface, err)
 	}
 
 	secretBytes, err := os.ReadFile("hyp.secret")
@@ -197,12 +199,15 @@ func rotateSequence() {
 	}
 }
 
-// TBD: Implement - this is a temporary routine to demonstrate an application
+// handleSuccess is ran when a source IP successfully enters the authentic knock sequence
+// the configured success action is ran
 func handleSuccess(srcip net.IP) {
-	fmt.Println("Success for ", srcip)
-	cmd := exec.Command("iptables", "-A", "INPUT", "-p", "tcp", "-s", fmt.Sprint(srcip), "--dport", "22", "-j", "ACCEPT")
+	fmt.Println("Successful knock from:", srcip)
+	// Don't care about command injection, the configuration file providing the command literally NEEDS to be trusted
+	// TBD: Use template / substitution instead of string formatting directive - allows for srcip token to be used multiple times
+	cmd := exec.Command("sh", "-c", fmt.Sprintf(serverConfig.SuccessAction, srcip))
 	err := cmd.Run()
 	if err != nil {
-		log.Printf("failed to execute iptables command for '%s': %v", srcip, err)
+		log.Printf("failed to execute success action command for '%s': %v", srcip, err)
 	}
 }
