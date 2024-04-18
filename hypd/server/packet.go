@@ -15,6 +15,7 @@ import (
 	"os/exec"
 	"time"
 
+	"deadbeef.codes/steven/hyp/hypd/configuration"
 	"deadbeef.codes/steven/hyp/otphyp"
 	"github.com/cilium/ebpf/link"
 	"github.com/cilium/ebpf/ringbuf"
@@ -48,7 +49,7 @@ var (
 // PacketServer is the main function when operating in server mode
 // it sets up the pcap on the capture device and starts a goroutine
 // to rotate the knock sequence
-func PacketServer(captureDevice string) error {
+func PacketServer(captureDevice string, config *configuration.HypdConfiguration) error {
 
 	iface, err := net.InterfaceByName(captureDevice)
 	if err != nil {

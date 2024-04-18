@@ -6,6 +6,7 @@ package cmd
 import (
 	"fmt"
 
+	"deadbeef.codes/steven/hyp/hypd/configuration"
 	"deadbeef.codes/steven/hyp/hypd/server"
 	"github.com/spf13/cobra"
 )
@@ -30,7 +31,16 @@ Example Usage:
 
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
-		err := server.PacketServer(args[0])
+		configFile, err := cmd.Flags().GetString("configfile")
+		if err != nil {
+			panic(fmt.Errorf("failed to get configfile flag: %w", err))
+		}
+		hypdConfiguration, err := configuration.LoadConfiguration(configFile)
+		if err != nil {
+			panic(fmt.Errorf("failed to start packet server: %w", err))
+		}
+
+		err = server.PacketServer(args[0], hypdConfiguration)
 		if err != nil {
 			panic(fmt.Errorf("failed to start packet server: %w", err))
 		}
@@ -40,22 +50,6 @@ Example Usage:
 
 func init() {
 	rootCmd.AddCommand(serverCmd)
-	/*
-		viper.SetConfigName("hypconfig")
-		viper.SetConfigType("yaml")
-		viper.AddConfigPath("/etc/hyp/")
-		viper.AddConfigPath("$HOME/.hyp")
-		viper.AddConfigPath(".")
-		viper.SetDefault("RefreshInterval", 7200)
-
-		if err := viper.ReadInConfig(); err != nil {
-			if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-				// Config file not found
-				// TBD: Implement
-			} else {
-				// Config file was found, but another error was produced
-				panic(fmt.Errorf("failed reading existing config file: %w", err))
-			}
-		}*/
+	serverCmd.PersistentFlags().String("configfile", "", "Path to the file containing the hypd configuration.")
 
 }
