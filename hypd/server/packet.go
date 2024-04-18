@@ -49,11 +49,11 @@ var (
 // PacketServer is the main function when operating in server mode
 // it sets up the pcap on the capture device and starts a goroutine
 // to rotate the knock sequence
-func PacketServer(captureDevice string, config *configuration.HypdConfiguration) error {
+func PacketServer(config *configuration.HypdConfiguration) error {
 
-	iface, err := net.InterfaceByName(captureDevice)
+	iface, err := net.InterfaceByName(config.NetworkInterface)
 	if err != nil {
-		log.Fatalf("lookup network iface %q: %v", captureDevice, err)
+		log.Fatalf("lookup network iface %q: %v", config.NetworkInterface, err)
 	}
 
 	secretBytes, err := os.ReadFile("hyp.secret")

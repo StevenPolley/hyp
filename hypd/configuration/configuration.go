@@ -7,6 +7,7 @@ import (
 )
 
 type HypdConfiguration struct {
+	NetworkInterface      string `json:"networkInterface"`
 	PreSharedKeyDirectory string `json:"preSharedKeyDirectory"` // hypd will load all *.secret files from this directory
 	SuccessAction         string `json:"successAction"`         // The action to take
 	TimeoutSeconds        int    `json:"timeoutSeconds"`        // If > 0, once a knock sequence has been successful this value will count down and when it reaches 0, it will perform the TimeoutAction on the client.
@@ -19,6 +20,7 @@ type HypdConfiguration struct {
 func LoadConfiguration(configFilePath string) (*HypdConfiguration, error) {
 	if configFilePath == "" {
 		commonLocations := []string{"hypdconfig.json",
+			"~/.hypdconfig.json",
 			"~/.config/hyp/hypdConfig.json",
 			"/etc/hyp/hypdConfig.json",
 			"/usr/local/etc/hyp/hypdConfig.json",
@@ -33,6 +35,7 @@ func LoadConfiguration(configFilePath string) (*HypdConfiguration, error) {
 	}
 	// if it's still not found after checking common locations, load default config
 	if configFilePath == "" {
+		fmt.Println("no configuration file found.  You can generate one with ./hypd generate defaultconfig | tee hypdconfig.json")
 		return DefaultConfig(), nil
 	}
 
@@ -45,17 +48,18 @@ func LoadConfiguration(configFilePath string) (*HypdConfiguration, error) {
 		return nil, fmt.Errorf("failed to read config file '%s': %w", configFilePath, err)
 	}
 
-	var hypdConfiguration *HypdConfiguration
+	hypdConfiguration := &HypdConfiguration{}
 	err = json.Unmarshal(b, hypdConfiguration)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal config file json to HypdConfiguration (is the config file malformed?): %w", err)
 	}
 
-	return nil, nil
+	return hypdConfiguration, nil
 }
 
 func DefaultConfig() *HypdConfiguration {
 	return &HypdConfiguration{
+		NetworkInterface:      "enp0s3",
 		PreSharedKeyDirectory: "./secrets/",
 		SuccessAction:         "iptables -A INPUT -p tcp -s %s --dport 22 -j ACCEPT",
 		TimeoutSeconds:        1440,

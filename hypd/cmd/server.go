@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"fmt"
+	"os/user"
 
 	"deadbeef.codes/steven/hyp/hypd/configuration"
 	"deadbeef.codes/steven/hyp/hypd/server"
@@ -13,34 +14,43 @@ import (
 
 // serverCmd represents the server command
 var serverCmd = &cobra.Command{
-	Use:   "server <NIC>",
+	Use:   "server <configFilePath>",
 	Args:  cobra.ExactArgs(1),
 	Short: "Runs hyp in server mode",
-	Long: `Runs the hyp server and begins capture on the NIC specified
+	Long: `Runs the hyp server and begins watching for authentic knock sequences.
+
+Before running this command, you must first have a configuration file.  You can
+generate a configuration file with:  hypd generate defaultconfig > hypdconfig.json
+
+You should then edit the config file to meet your needs.  
+
+In addition to a config file you will need to generate pre-shared keys: 
+mkdir -p ./secrets
+hypd generate secret > secrets/mykey.secret
 
 Example Usage:
 
-	# Linux - capture enp0s0
-	hyp server enp0s0
+	# Use config file in local directory
+	hypd server hypdconfig.json
 
-	# Linux - capture eth0
-	hyp server eth0
-
-	# Windows - get-netadapter | where {$_.Name -eq “Ethernet”} | Select-Object -Property DeviceName
-	hyp.exe server "\\Device\\NPF_{A6F067DE-C2DC-4B4E-9C74-BE649C4C0F03}"
-
+	# Use config file in /etc/hyp/
+	hypd server /etc/hyp/hypdconfig.json
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
-		configFile, err := cmd.Flags().GetString("configfile")
+
+		currentUser, err := user.Current()
 		if err != nil {
-			panic(fmt.Errorf("failed to get configfile flag: %w", err))
+			panic(fmt.Errorf("could not determine current user: %w", err))
 		}
-		hypdConfiguration, err := configuration.LoadConfiguration(configFile)
+		if currentUser.Username != "root" {
+			fmt.Println("WARNING: It's recommended you run this as root, but will proceed anyways...")
+		}
+
+		hypdConfiguration, err := configuration.LoadConfiguration(args[0])
 		if err != nil {
 			panic(fmt.Errorf("failed to start packet server: %w", err))
 		}
-
-		err = server.PacketServer(args[0], hypdConfiguration)
+		err = server.PacketServer(hypdConfiguration)
 		if err != nil {
 			panic(fmt.Errorf("failed to start packet server: %w", err))
 		}
@@ -50,6 +60,4 @@ Example Usage:
 
 func init() {
 	rootCmd.AddCommand(serverCmd)
-	serverCmd.PersistentFlags().String("configfile", "", "Path to the file containing the hypd configuration.")
-
 }

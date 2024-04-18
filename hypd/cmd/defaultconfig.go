@@ -16,7 +16,9 @@ var defaultconfigCmd = &cobra.Command{
 	Use:   "defaultconfig",
 	Short: "Prints the default configuration to stdout",
 	Long: `The default configuration is used if one is not set.  The default configuration
-	can be used as a reference to build your own.  `,
+can be used as a reference to build your own. 
+
+hypd generate defaultconfig | tee hypdconfig.json`,
 	Run: func(cmd *cobra.Command, args []string) {
 		config := configuration.DefaultConfig()
 		b, err := json.MarshalIndent(config, "", "    ")
