@@ -2,4 +2,4 @@ hyp.secret
 *.exe
 hypd/hypd
 hyp/hyp
-hypdconfig.json
+hypd/hypdconfig.json

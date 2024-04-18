@@ -1,0 +1,7 @@
+{
+    "networkInterface": "enp0s3",
+    "preSharedKeyDirectory": "./secrets/",
+    "successAction": "./examples/openwrt-wireguard/openwireguard.sh %s",
+    "timeoutSeconds": 1440,
+    "timeoutAction": "./examples/openwrt-wireguard/closewireguard.sh %s"
+}
