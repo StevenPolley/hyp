@@ -37,7 +37,6 @@ Example Usage:
 	hypd server /etc/hyp/hypdconfig.json
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
-
 		currentUser, err := user.Current()
 		if err != nil {
 			panic(fmt.Errorf("could not determine current user: %w", err))
@@ -54,7 +53,6 @@ Example Usage:
 		if err != nil {
 			panic(fmt.Errorf("failed to start packet server: %w", err))
 		}
-
 	},
 }
 

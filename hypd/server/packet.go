@@ -50,7 +50,6 @@ var (
 // it sets up the pcap on the capture device and starts a goroutine
 // to rotate the knock sequence
 func PacketServer(config *configuration.HypdConfiguration) error {
-
 	iface, err := net.InterfaceByName(config.NetworkInterface)
 	if err != nil {
 		log.Fatalf("lookup network iface %q: %v", config.NetworkInterface, err)
@@ -148,8 +147,6 @@ func handleKnock(knockEvent hyp_bpfKnockData) {
 	}
 
 	// if it's wrong, reset progress
-	// TBD: vulnerable to sweep attack - this won't be triggered if a wrong packet doesn't match BPF filter
-	// TBD: make the sweep attack fix on by default, but configurable to be off to allow for limited BPF filter for extremely low overhead as compromise.
 	if knockEvent.Dstport != client.Sequence[client.Progress] {
 		delete(clients, knockEvent.Srcip)
 		fmt.Printf("port '%d' is in sequence, but came at unexpected order - resetting progress", knockEvent.Dstport)

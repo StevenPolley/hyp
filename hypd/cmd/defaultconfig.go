@@ -31,5 +31,4 @@ hypd generate defaultconfig | tee hypdconfig.json`,
 
 func init() {
 	generateCmd.AddCommand(defaultconfigCmd)
-
 }
