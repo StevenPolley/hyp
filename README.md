@@ -29,15 +29,20 @@ Pre-built binaries for configurations I've tested are available on the [releases
 To build this yourself, you will need Linux with packages for: git, clang, linux-headers-<architecture> libbpf-dev and golang. Check out the [Dockerfile ](https://deadbeef.codes/steven/hyp/src/branch/main/Dockerfile) as a reference for how the build environment for official releases is configured. Once the environment is ready, you can clone the repo and build.
 
 ```sh
+# Clone repository
 git clone https://deadbeef.codes/steven/hyp.git
+
+# Build eBPF program
 cd hyp/hypd/server
 go generate
+
+# Build knock daemon
 cd ..
 go build -o hypd .
 chmod +x hypd
 
+# Run knock daemon and show help
 ./hypd -h
-
 ```
 
 ### References
