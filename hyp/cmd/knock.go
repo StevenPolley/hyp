@@ -4,6 +4,7 @@ Copyright © 2024 Steven Polley <himself@stevenpolley.net>
 package cmd
 
 import (
+	"encoding/base32"
 	"fmt"
 	"log"
 	"net"
@@ -50,9 +51,13 @@ Example usage:
 		if err != nil {
 			log.Fatalf("failed to read file 'hyp.secret': %v", err)
 		}
-		sharedSecret := string(secretBytes)
 
-		ports, err := otphyp.GeneratePorts(sharedSecret, time.Now())
+		decodedSecret, err := base32.StdEncoding.DecodeString(string(secretBytes))
+		if err != nil {
+			log.Fatalf("failed to base32 decode secret '%s': %w", secretFilePath, err)
+		}
+
+		ports, err := otphyp.GeneratePorts(decodedSecret, time.Now())
 		if err != nil {
 			log.Fatalf("failed to generate ports from shared secret: %v", err)
 		}
