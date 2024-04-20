@@ -47,6 +47,11 @@ Example usage:
 			panic(fmt.Errorf("maxjitter must be value between 1 and 1500"))
 		}
 
+		refreshTime, err := cmd.Flags().GetInt("refreshtime")
+		if err != nil {
+			panic(fmt.Errorf("failed to parse command flag 'refreshtime': %w", err))
+		}
+
 		secretBytes, err := os.ReadFile(secretFilePath)
 		if err != nil {
 			log.Fatalf("failed to read file 'hyp.secret': %v", err)
@@ -57,18 +62,29 @@ Example usage:
 			log.Fatalf("failed to base32 decode secret '%s': %v", secretFilePath, err)
 		}
 
-		ports, err := otphyp.GeneratePorts(decodedSecret, time.Now())
-		if err != nil {
-			log.Fatalf("failed to generate ports from shared secret: %v", err)
-		}
+		for {
 
-		// Transmit
-		for _, port := range ports {
-			fmt.Printf("knock | %s:%d\n", args[0], port)
-			conn, _ := net.Dial("udp", fmt.Sprintf("%s:%d", args[0], port))
-			conn.Write([]byte{0})
-			conn.Close()
-			time.Sleep(time.Millisecond * time.Duration(maxJitter)) // TBD: Make this configurable with flag (maxJitter)
+			ports, err := otphyp.GeneratePorts(decodedSecret, time.Now())
+			if err != nil {
+				log.Fatalf("failed to generate ports from shared secret: %v", err)
+			}
+
+			// Transmit
+			for _, port := range ports {
+				fmt.Printf("knock | %s:%d\n", args[0], port)
+				conn, _ := net.Dial("udp", fmt.Sprintf("%s:%d", args[0], port))
+				conn.Write([]byte{0})
+				conn.Close()
+				time.Sleep(time.Millisecond * time.Duration(maxJitter)) // TBD: Make this configurable with flag (maxJitter)
+			}
+
+			if refreshTime < 1 {
+				break
+			}
+
+			sleepDuration := time.Minute * time.Duration(refreshTime)
+			fmt.Printf("waiting until: %s...\n", time.Now().Add(sleepDuration).Format("15:04:05"))
+			time.Sleep(sleepDuration)
 		}
 	},
 }
@@ -76,6 +92,7 @@ Example usage:
 func init() {
 	rootCmd.AddCommand(knockCmd)
 
-	knockCmd.PersistentFlags().String("secret", "hyp.secret", "Path to the file containing the hyp secret.")
-	knockCmd.PersistentFlags().Int("maxjitter", 200, "Specifies the time in milliseconds between knock sequence transmissions.")
+	knockCmd.PersistentFlags().String("secret", "hyp.secret", "Path to the file containing the hyp secret")
+	knockCmd.PersistentFlags().Int("maxjitter", 200, "Specifies the time in milliseconds between transmissions while performing the knock sequence")
+	knockCmd.PersistentFlags().Int("refreshtime", 0, "If specified, the hyp client will run persistently and send a full knock sequence at this interval in minutes")
 }
