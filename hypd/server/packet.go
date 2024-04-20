@@ -175,7 +175,7 @@ func rotateSequence() {
 	for {
 		// Generate new knock sequences with time skew support
 		t := time.Now().Add(time.Second * -30)
-		for i := len(knockSequences); i < 3; i++ {
+		for i := len(knockSequences) / len(sharedSecrets); i < 3; i++ {
 			for _, secret := range sharedSecrets {
 				portSequence, err := otphyp.GeneratePorts(secret, t.Add((time.Second * 30 * time.Duration(i))))
 				if err != nil {
@@ -190,7 +190,7 @@ func rotateSequence() {
 		time.Sleep(time.Until(time.Now().Truncate(time.Second * 30).Add(time.Second * 30)))
 
 		// pop first value, next iteration pushes new value
-		knockSequences = knockSequences[1:]
+		knockSequences = knockSequences[len(sharedSecrets):]
 	}
 }
 

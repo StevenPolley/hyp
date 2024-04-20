@@ -3,3 +3,4 @@ hyp.secret
 hypd/hypd
 hyp/hyp
 hypd/hypdconfig.json
+hypd/secrets/
