@@ -2,36 +2,43 @@
 
 [![Build Status](https://drone.deadbeef.codes/api/badges/steven/hyp/status.svg)](https://drone.deadbeef.codes/steven/hyp)
 
-hyp is a [port knocking](https://www.youtube.com/watch?v=a7VJZEJVhD0) implementation written in Go, using spread-spectrum UDP as an authentication mechanism.  It enables trusted devices to access services over the internet, wherever they are, and without the service being publicly accessible.  The benefit is that the ports are not open publicly on the internet, they won't show in a port scan and are therefore less likely to be attacked by a threat actor. 
+hyp is a [port knocking](https://www.youtube.com/watch?v=a7VJZEJVhD0) implementation written in Go, using spread-spectrum UDP as an authentication mechanism. It enables trusted agents to access services over the internet, wherever they are, and without the service being publicly accessible. Your TCP and UDP ports are closed. The benefit is that the ports are not open publicly on the internet, they won't show in a port scan and are therefore less likely to be attacked by a threat actor. Compared to most port knocking daemons, hyp provides additional protection against replay and sweep attacks. 
 
-hyp provides security through obscurity.  Security through obscurity tends to have a negative connotation, at least in the IT world.  I don't agree with this, but it's prescribed as being bad.  My belief is security through obscurity is a "further step" one can take to eliminate a certain class of threats.  It by no means should be the only mechanism of protection, but instead should be incorporated only as part of a layered defense.  
+hyp makes use of pre-shared keys and time to calculate an authentic knock sequence on both the client and server. The following process describes how hyp works:
 
-### Physical World Analogy
+1. The pre-shared key is generated and distributed between both the hyp client and the hyp server. 
+2. The pre-shared key is run through a sha1-hmac algorithm along with the current system time, this produces the same 160 bits of output on both sides.
+3. The 160 bits is reduced down to 64 bits. This helps protect the key by not revealing the entire output of the hmac... we will be transmitting over an untrusted network after all.
+4. The 64 bits are divided into four 16-bit structures which are typecast to 16-bit unsigned integers. A 16-bit integer can have a value from 0-65535, the same as UDP port numbers. We have four of them now.
+5. Transmit one empty datagram to the knock daemon at a time, one after another using the four integers from the previous calculation as the destination port numbers.
+6. The knock daemon on the firewall verifies the sequence and performs the action of opening the firewall port configured for the client to let them in while remaining closed to everyone else. 
+7. The client connects to their application which has its own authentication, authorization, and auditing. 
 
-*Scenario:* You drive to the grocery store and you happen to have your laptop computer with you in the car.  You're worried someone may break into your car and steal your laptop, but luckily you have some options to consider before you leave the car to go into the store:
+![Authentic Knock Sequence](https://deadbeef.codes/steven/hyp/raw/branch/main/docs/authentic-knock-sequence-calculation.png)
 
-1. You could leave your laptop sitting where it is, on the passenger seat
-2. You could conceal the laptop from outside view
+### Runtime Requirements
 
-Option 1 is the default option and is analogous to having your services internet-accessible.  Option 2 is similar to what port knocking is trying to achieve.  In either case, there still exists some risk that your laptop will be stolen in a random bip, which is why port knocking should not be your sole focus when it comes to your security strategy and should instead be something you can use to reduce the risk of drive-by attacks.
+Port knocking clients have minimal requirements and can run on x86, ARM, MIPS, PowerPC, IBM390, or RISC-V. Currently only supported OS's are Linux and Windows, with support for Android planned to be added in the future.
 
-### Brute Force Simple Overview
+The port knocking daemon has more strict requirements and is only available for Linux. It requires the kernel be built with CONFIG_DEBUG_INFO_BTF, which most major distributions have out of the box. 
 
-To put it in simple terms, hyp requires an adversary to guess a number between 1 and 18,446,744,073,709,551,615 within 90 seconds.  Each guess attempt requires four ordered UDP datagrams to be transmitted.  The requirement for correct order on arrival, multiple network paths, and network latency means the datagrams have to be spaced out and transmitted one at a time with time spent waiting before the next datagram is sent.  An odd but perhaps useful implication of this is that the further away you are (higher latency), the less reliable guess attempts you can make before the number changes.  With 20ms of latency, you can perform a maximum of 4,500 reliable guesses.  With 100ms of latency, you can only perform a maximum of 900 reliable guesses.
+### Build Requirements
 
-### Protection Against Replay Attacks
+Pre-built binaries for configurations I've tested are available on the [releases page](https://deadbeef.codes/steven/hyp/releases). This will likely run in many CPU architectures I haven't tested yet though. 
 
-Most port-knocking implementations are susceptible to replay attacks, a network operator could intercept your authentic knock sequence and then replay the sequence.  hyp works around this by using 64-bit time-based one-time tokens.  The 64 bits of the token are then divided into 4x16-bit unsigned integers representing a port number.  
+To build this yourself, you will need Linux with packages for: git, clang, linux-headers-<architecture> libbpf-dev and golang. Check out the [Dockerfile ](https://deadbeef.codes/steven/hyp/src/branch/main/Dockerfile) as a reference for how the build environment for official releases is configured. Once the environment is ready, you can clone the repo and build.
 
-hyp supports a clock skew of up to 30 seconds between client and server.  
+```sh
+git clone https://deadbeef.codes/steven/hyp.git
+cd hyp/hypd/server
+go generate
+cd ..
+go build -o hypd .
+chmod +x hypd
 
-### Protection Against Sweeping Attacks
+./hypd -h
 
-hyp protects against sweeping attacks where an adversary modulates over the entire port range multiple times by ensuring the authentic knock sequence is strict and ordered correctly.  If the first port is guessed, but the next pack arrives and is the incorrect second port in the sequence, the progress gets reset.  In addition to this, the correct authentic knock sequence must be entered within 5 seconds of the start of the sequence.  
-
-### Known Weaknesses
-
-* Lossy networks can result in the knock sequence failing
+```
 
 ### References
 
