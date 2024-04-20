@@ -54,7 +54,7 @@ Example usage:
 
 		decodedSecret, err := base32.StdEncoding.DecodeString(string(secretBytes))
 		if err != nil {
-			log.Fatalf("failed to base32 decode secret '%s': %w", secretFilePath, err)
+			log.Fatalf("failed to base32 decode secret '%s': %v", secretFilePath, err)
 		}
 
 		ports, err := otphyp.GeneratePorts(decodedSecret, time.Now())
