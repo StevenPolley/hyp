@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"os"
 	"os/exec"
 	"time"
 
@@ -43,25 +42,20 @@ const (
 var (
 	clients        map[uint32]*Client // Contains a map of clients, key is IPv4 address
 	knockSequences []KnockSequence    // We have 3 valid knock sequences at any time to account for clock skew
-	sharedSecret   string             // base32 encoded shared secret used for totp
 	serverConfig   *configuration.HypdConfiguration
+	sharedSecrets  [][]byte // A slice of byte slices, each being a secret key
 )
 
 // PacketServer is the main function when operating in server mode
 // it sets up the pcap on the capture device and starts a goroutine
 // to rotate the knock sequence
-func PacketServer(config *configuration.HypdConfiguration) error {
+func PacketServer(config *configuration.HypdConfiguration, secrets [][]byte) error {
 	serverConfig = config
+	sharedSecrets = secrets
 	iface, err := net.InterfaceByName(serverConfig.NetworkInterface)
 	if err != nil {
 		log.Fatalf("lookup network iface %q: %v", serverConfig.NetworkInterface, err)
 	}
-
-	secretBytes, err := os.ReadFile("hyp.secret")
-	if err != nil {
-		log.Fatalf("failed to read file 'hyp.secret': %v", err)
-	}
-	sharedSecret = string(secretBytes)
 
 	clients = make(map[uint32]*Client, 0)
 	knockSequences = []KnockSequence{}
@@ -182,14 +176,15 @@ func rotateSequence() {
 		// Generate new knock sequences with time skew support
 		t := time.Now().Add(time.Second * -30)
 		for i := len(knockSequences); i < 3; i++ {
-			portSequence, err := otphyp.GeneratePorts(sharedSecret, t.Add((time.Second * 30 * time.Duration(i))))
-			if err != nil {
-				log.Fatalf("failed to generate port knock sequence: %v", err)
+			for _, secret := range sharedSecrets {
+				portSequence, err := otphyp.GeneratePorts(secret, t.Add((time.Second * 30 * time.Duration(i))))
+				if err != nil {
+					log.Fatalf("failed to generate port knock sequence: %v", err)
+				}
+				knockSequence := KnockSequence{PortSequence: portSequence}
+				knockSequences = append(knockSequences, knockSequence)
 			}
-			knockSequence := KnockSequence{PortSequence: portSequence}
-			knockSequences = append(knockSequences, knockSequence)
 		}
-		fmt.Println("New sequences:", knockSequences)
 
 		// Sleep until next 30 second offset
 		time.Sleep(time.Until(time.Now().Truncate(time.Second * 30).Add(time.Second * 30)))

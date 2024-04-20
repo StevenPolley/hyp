@@ -47,9 +47,15 @@ Example Usage:
 
 		hypdConfiguration, err := configuration.LoadConfiguration(args[0])
 		if err != nil {
-			panic(fmt.Errorf("failed to start packet server: %w", err))
+			panic(fmt.Errorf("failed to load configuration file '%s': %w", args[0], err))
 		}
-		err = server.PacketServer(hypdConfiguration)
+
+		secrets, err := configuration.LoadSecrets(hypdConfiguration.PreSharedKeyDirectory)
+		if err != nil {
+			panic(fmt.Errorf("failed to load secrets from directory '%s': %w", hypdConfiguration.PreSharedKeyDirectory, err))
+		}
+
+		err = server.PacketServer(hypdConfiguration, secrets)
 		if err != nil {
 			panic(fmt.Errorf("failed to start packet server: %w", err))
 		}

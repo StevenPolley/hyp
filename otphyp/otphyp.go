@@ -15,12 +15,7 @@ import (
 
 // A loose implementation of hotp meant for our specific purposes of generating four random port numbers
 // Accepts a base32 encoded shared secret and a time
-func GeneratePorts(sharedSecret string, t time.Time) (ports [4]uint16, err error) {
-
-	sharedSecretBytes, err := base32.StdEncoding.DecodeString(sharedSecret)
-	if err != nil {
-		return [4]uint16{0, 0, 0, 0}, fmt.Errorf("failed to base32 decode shared secret string to bytes: %v", err)
-	}
+func GeneratePorts(sharedSecret []byte, t time.Time) (ports [4]uint16, err error) {
 
 	// 30 second key rotation
 	movingFactor := uint64(math.Floor(float64(t.Unix()) / float64(30)))
@@ -28,7 +23,7 @@ func GeneratePorts(sharedSecret string, t time.Time) (ports [4]uint16, err error
 	binary.BigEndian.PutUint64(buf, movingFactor)
 
 	// calculate hmac and offset
-	mac := hmac.New(sha1.New, sharedSecretBytes)
+	mac := hmac.New(sha1.New, sharedSecret)
 	mac.Write(buf)
 	sum := mac.Sum(nil)
 	offset := sum[len(sum)-1] & 0xf
