@@ -25,8 +25,9 @@ import (
 
 // Client is used to keep track of a client attempting to perform an authentic knock sequence
 type Client struct {
-	Progress int       // index of current progress in sequence.   Value of 1 means first port has been matched
-	Sequence [4]uint16 // stores the knock sequence the current client is attempting.  It's set and tracked here to prevent race conditions during a knock sequence being received and key rotations
+	Progress    int       // index of current progress in sequence.   Value of 1 means first port has been matched
+	Sequence    [4]uint16 // stores the knock sequence the current client is attempting.  It's set and tracked here to prevent race conditions during a knock sequence being received and key rotations
+	LastSuccess time.Time
 }
 
 // KnockSequence is used keep track of an ordered knock sequence and whether it's been marked for use (to prevent replay attacks)
@@ -112,7 +113,7 @@ func PacketServer(config *configuration.HypdConfiguration, secrets [][]byte) err
 			log.Printf("error parsing ringbuf event: %v", err)
 			continue
 		}
-		handleKnock(event)
+		go handleKnock(event)
 	}
 }
 
@@ -125,17 +126,21 @@ func intToIP(ipNum uint32) net.IP {
 
 // packets that match the BPF filter get passed to handlePacket
 func handleKnock(knockEvent hyp_bpfKnockData) {
-
 	client, ok := clients[knockEvent.Srcip]
 	if !ok { // client doesn't exist yet
-		for i, knockSequence := range knockSequences { // identify which of the 3 authentic knock sequences is matched
+		client = &Client{}
+		clients[knockEvent.Srcip] = client
+	}
+
+	if client.Progress == 0 {
+		for i, knockSequence := range knockSequences { // identify which of the authentic knock sequences is matched
 			if knockSequence.Used { // skip over sequences that are already used to prevent replay attack
 				continue
 			}
 			if knockEvent.Dstport == knockSequence.PortSequence[0] {
-				// Create the client and mark the knock sequence as used
-				clients[knockEvent.Srcip] = &Client{Progress: 1, Sequence: knockSequence.PortSequence}
-				knockSequences[i].Used = true
+				knockSequences[i].Used = true // TBD: This is vulnerable to a DoS just by doing a full UDP port scan
+				client.Progress = 1
+				client.Sequence = knockSequence.PortSequence
 				go timeoutKnockSequence(knockEvent.Srcip)
 			}
 		}
@@ -152,8 +157,9 @@ func handleKnock(knockEvent hyp_bpfKnockData) {
 	// Client increases progress through sequence and checks if sequence is completed
 	client.Progress++
 	if client.Progress >= len(client.Sequence) {
-		delete(clients, knockEvent.Srcip)
-		handleSuccess(intToIP(knockEvent.Srcip)) // The magic function, the knock is completed
+		client.Progress = 0
+		client.LastSuccess = time.Now()
+		handleSuccess(knockEvent.Srcip) // The magic function, the knock is completed
 		return
 	}
 }
@@ -162,11 +168,18 @@ func handleKnock(knockEvent hyp_bpfKnockData) {
 // being indefinitely stuck part way through an old knock sequence.  It's also helpful
 // in preventing sweep attacks as the authentic knock sequence must be correctly entered
 // within the timeout value from start to finish.
+// Note: This is not related to handling the timeout / clsoe ports action after a client
+// has successfully completed an authentic knock sequence
 func timeoutKnockSequence(srcip uint32) {
 	time.Sleep(time.Second * KnockSequenceTimeout)
-	_, ok := clients[srcip]
+	client, ok := clients[srcip]
 	if ok {
-		delete(clients, srcip)
+		if client.LastSuccess.IsZero() { // If they've never succeeded, just drop them from the map
+			delete(clients, srcip)
+		} else { // If they have succeeded, just reset their progress to 0 but keep them in map.  They will be cleaned in handleSuccess
+			client.Progress = 0
+		}
+
 	}
 }
 
@@ -196,13 +209,46 @@ func rotateSequence() {
 
 // handleSuccess is ran when a source IP successfully enters the authentic knock sequence
 // the configured success action is ran
-func handleSuccess(srcip net.IP) {
-	fmt.Println("Successful knock from:", srcip)
+func handleSuccess(srcip uint32) {
+	srcipf := intToIP(srcip) // formatted as net.IP
+	log.Printf("Successful knock from: %s", srcipf)
+
+	client, ok := clients[srcip]
+	if !ok {
+		log.Printf("failed to lookup %s in clients", srcipf)
+		return
+	}
+
 	// Don't care about command injection, the configuration file providing the command literally NEEDS to be trusted
 	// TBD: Use template / substitution instead of string formatting directive - allows for srcip token to be used multiple times
-	cmd := exec.Command("sh", "-c", fmt.Sprintf(serverConfig.SuccessAction, srcip))
+	cmd := exec.Command("sh", "-c", fmt.Sprintf(serverConfig.SuccessAction, srcipf))
 	err := cmd.Run()
 	if err != nil {
-		log.Printf("failed to execute success action command for '%s': %v", srcip, err)
+		log.Printf("failed to execute success action command for '%s': %v", srcipf, err)
 	}
+
+	// Handle timeout action
+	if serverConfig.TimeoutSeconds < 1 { // Timeout action is disabled
+		delete(clients, srcip)
+		return
+	}
+
+	// Handle checks for client timeout
+	// TBD: Persistence / journaling state to disk?  How to handle case if knock daemon is restarted - ports would remain open
+	lastSuccess := client.LastSuccess
+	time.Sleep(time.Until(client.LastSuccess.Add(time.Duration(serverConfig.TimeoutSeconds * int(time.Second)))))
+	if client.LastSuccess.After(lastSuccess) { // The client has refreshed
+		return
+	}
+
+	// Don't care about command injection, the configuration file providing the command literally NEEDS to be trusted
+	// TBD: Use template / substitution instead of string formatting directive - allows for srcip token to be used multiple times
+	log.Printf("Performing timeout action on: %s", srcipf)
+	cmd = exec.Command("sh", "-c", fmt.Sprintf(serverConfig.TimeoutAction, srcipf))
+	err = cmd.Run()
+	if err != nil {
+		log.Printf("failed to execute timeout action command for '%s': %v", srcipf, err)
+	}
+
+	delete(clients, srcip)
 }
