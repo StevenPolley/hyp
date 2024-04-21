@@ -57,8 +57,16 @@ func LoadConfiguration(configFilePath string) (*HypdConfiguration, error) {
 }
 
 func DefaultConfig() *HypdConfiguration {
+	var ifaceString string
+	iface, err := getDefaultNIC()
+	if err == nil {
+		ifaceString = iface.Name
+	} else {
+		ifaceString = "enp0s3" // fallback to fixed value
+	}
+
 	return &HypdConfiguration{
-		NetworkInterface:      "enp0s3",
+		NetworkInterface:      ifaceString,
 		PreSharedKeyDirectory: "./secrets/",
 		SuccessAction:         "iptables -A INPUT -p tcp -s %s --dport 22 -j ACCEPT",
 		TimeoutSeconds:        1440,

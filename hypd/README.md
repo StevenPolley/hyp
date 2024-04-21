@@ -33,7 +33,9 @@ Running hypd requires specifying a configuration file.  It's recommended you gen
 ./hypd generate defaultconfig > hypd.conf
 ```
 
-Make sure you take the time to review the hypd.conf file and edit it to your liking, this is the most important step.  
+Make sure you take the time to review the hypd.conf file and edit it to your liking, this is the most important step.  Make sure the network interface is correct, hypd will make an educated guess based on the interfaces your system has.
+
+If you have complex requirements, you can make the successAction/timeoutAction an external shell script.  If you want to disable the timeoutAction, you can set timeoutSeconds to 0.
 
 Once you have set your config file, you can finally run hypd.
 
