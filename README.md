@@ -20,13 +20,15 @@ Compared to most port knocking daemons, hyp is extremely fast, lightweight and h
 
 Port knocking clients have minimal requirements and can run on x86, ARM, MIPS, PowerPC, IBM390, or RISC-V. Currently only supported OS's are Linux and Windows, with support for Android planned to be added in the future.
 
-The port knocking daemon has more strict requirements and is only available for Linux. It requires the kernel be built with CONFIG_DEBUG_INFO_BTF, which most major distributions have out of the box. 
+The port knocking daemon has more strict requirements and is only available for Linux. It requires the kernel be built with CONFIG_DEBUG_INFO_BTF, which most major distributions have out of the box.  Additionally, hypd has some network requirements.  hypd is only expected to work on ethernet networks with IPv4.
+
+Once you get the runtime requirements sorted, be sure to check out the hyp and hypd directories of the repository for README information for how to use hyp.    
 
 ### Build Requirements
 
 Pre-built binaries for configurations I've tested are available on the [releases page](https://deadbeef.codes/steven/hyp/releases). This will likely run in many CPU architectures I haven't tested yet though. 
 
-To build this yourself, you will need Linux with packages for: git, clang, linux-headers-<architecture> libbpf-dev and golang. Check out the [Dockerfile ](https://deadbeef.codes/steven/hyp/src/branch/main/Dockerfile) as a reference for how the build environment for official releases is configured. Once the environment is ready, you can clone the repo and build.
+To build this yourself, you will need Linux with packages for: git, clang, linux-headers-<architecture> libbpf-dev and golang. Check out the [Dockerfile](https://deadbeef.codes/steven/hyp/src/branch/main/Dockerfile) as a reference for how the build environment for official releases is configured. Once the environment is ready, you can clone the repo and build.
 
 ```sh
 # Clone repository
