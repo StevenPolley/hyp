@@ -1,0 +1,7 @@
+{
+    "networkInterface": "enp0s3",
+    "preSharedKeyDirectory": "./secrets/",
+    "successAction": "./examples/fortigate/openfortigate.sh %s",
+    "timeoutSeconds": 0,
+    "timeoutAction": ""
+}
