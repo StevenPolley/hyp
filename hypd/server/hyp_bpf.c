@@ -35,7 +35,7 @@ int xdp_prog_func(struct xdp_md *ctx) {
 
 	// A knock should not contain any data
 	if (data_end - data > 60) { 
-		goto done;
+		return XDP_PASS;
 	}
 
 	// parse ethernet header
@@ -60,7 +60,6 @@ int xdp_prog_func(struct xdp_md *ctx) {
 			}
 		}
 	}
-done:
 	// We send everything to XDP_PASS
 	return XDP_PASS;
 }

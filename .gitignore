@@ -4,3 +4,5 @@ hypd/hypd
 hyp/hyp
 hypd/hypdconfig.json
 hypd/secrets/
+hypd/server/*.o
+env.sh
