@@ -40,26 +40,35 @@ int xdp_prog_func(struct xdp_md *ctx) {
 
 	// parse ethernet header
 	struct ethhdr *eth = data;
-	if ((void *)eth + sizeof(*eth) <= data_end) {
-		// parse IP header
-		struct iphdr *ip = data + sizeof(*eth);
-		if ((void *)ip + sizeof(*ip) <= data_end) {
-			if (ip->protocol == IPPROTO_UDP) {
-				// parse UDP header
-				struct udphdr *udp = (void *)ip + sizeof(*ip);
-				if ((void *)udp + sizeof(*udp) <= data_end)
-				{
-					// pack into knock structure and send to userspace
-					struct knock_data knock = {
-						.srcip = bpf_ntohl(ip->saddr),
-						.dstport = bpf_htons(udp->dest),
-						.pad = 0
-					};				
-					bpf_ringbuf_output(&rb, &knock, sizeof(knock), BPF_RB_FORCE_WAKEUP);
-				}
-			}
-		}
+	if ((void *)eth + sizeof(*eth) > data_end) {
+		return XDP_PASS;
 	}
+
+	// parse IP header
+	struct iphdr *ip = data + sizeof(*eth);
+	if ((void *)ip + sizeof(*ip) > data_end) {
+		return XDP_PASS;
+	}
+
+	// Ensure IP header protocol field is UDP (protocol 17)
+	if (ip->protocol != IPPROTO_UDP) {
+		return XDP_PASS;
+	}
+
+	// parse UDP header
+	struct udphdr *udp = (void *)ip + sizeof(*ip);
+	if ((void *)udp + sizeof(*udp) > data_end) {
+		return XDP_PASS;
+	}
+
+	// pack into knock structure and send to userspace
+	struct knock_data knock = {
+		.srcip = bpf_ntohl(ip->saddr),
+		.dstport = bpf_htons(udp->dest),
+		.pad = 0
+	};				
+	bpf_ringbuf_output(&rb, &knock, sizeof(knock), BPF_RB_FORCE_WAKEUP);
+		
 	// We send everything to XDP_PASS
 	return XDP_PASS;
 }
