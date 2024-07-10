@@ -1,6 +1,6 @@
 # hyp | Hide Your Ports
 
-[![Build Status](https://drone.deadbeef.codes/api/badges/steven/hyp/status.svg)](https://drone.deadbeef.codes/steven/hyp)
+[![Build Status](https://drone.stevenpolley.net/api/badges/steven/hyp/status.svg)](https://drone.deadbeef.codes/steven/hyp)
 
 hyp is a [port knocking](https://www.youtube.com/watch?v=a7VJZEJVhD0) implementation written in Go and C.  hyp uses spread-spectrum UDP as an authentication mechanism and enables trusted agents to access services over the internet, wherever they are, and without the service being accessible by others. Your TCP and UDP ports are closed. They will not show in a port scan.  Nobody else can connect to them.  This is particularly useful as [there](https://nvd.nist.gov/vuln/detail/CVE-2024-21888) [have](https://nvd.nist.gov/vuln/detail/CVE-2023-20269) [been](https://nvd.nist.gov/vuln/detail/CVE-2021-26109) [a](https://nvd.nist.gov/vuln/detail/CVE-2024-22394) [few](https://nvd.nist.gov/vuln/detail/CVE-2024-21894) [VPN](https://nvd.nist.gov/vuln/detail/CVE-2024-3400) [gateway](https://nvd.nist.gov/vuln/detail/CVE-2023-27997) [vulnerabilities](https://nvd.nist.gov/vuln/detail/CVE-2024-21762) [over](https://nvd.nist.gov/vuln/detail/CVE-2022-3236) [the](https://nvd.nist.gov/vuln/detail/CVE-2024-21893) [years](https://nvd.nist.gov/vuln/detail/CVE-2022-42475).  I often wonder what's out there and hasn't been discovered.  Why take the chance of leaving your VPN open to the whole internet?  With hyp, you don't have to.  
 
@@ -14,7 +14,7 @@ Compared to most port knocking daemons, hyp is extremely fast, lightweight and h
 6. The knock daemon on the firewall verifies the sequence and performs the action of opening the firewall port configured for the client to let them in while remaining closed to everyone else. 
 7. The client connects to their application which has its own authentication, authorization, and auditing. 
 
-![Authentic Knock Sequence](https://deadbeef.codes/steven/hyp/raw/branch/main/docs/authentic-knock-sequence-calculation.png)
+![Authentic Knock Sequence](https://code.stevenpolley.net/steven/hyp/raw/branch/main/docs/authentic-knock-sequence-calculation.png)
 
 ### Runtime Requirements
 
